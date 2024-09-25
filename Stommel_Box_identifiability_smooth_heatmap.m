@@ -1,5 +1,6 @@
 clear
 clc
+close all
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 % Initialization section
 % Number of parameters (theta) of the system
@@ -162,7 +163,7 @@ Sy1_smooth_all(:,ii) =  Sy_smooth(:,1);
 Sy_samples_smooth = Y_theta_samples_case_smooth*[0 0 0;eye(3)];
 [U_L_smooth,S_L_smooth,V_L_smooth] = svd(Sy_samples_smooth);
 Rank_table(ii,jj)=rank(S_L_smooth,1e-20000);
-if alpha_vec_norm(ii)== 0.000001
+if alpha_vec_norm(ii)== 1e-6
     Sy_smooth_sens_plot = Sy_smooth;
     alpha_vec_norm_plot = alpha_vec_norm(ii);
 end
@@ -344,4 +345,21 @@ X23_dt = df2(3) - theta3*X23 - smooth_abs*X23 - V*grad_smooth_abs*(X13-X23);
 X24_dt = df2(4) - theta3*X24 - smooth_abs*X24 - V*grad_smooth_abs*(X14-X24);
 % dXdt = [dTdt;dVdt;dT_dtheta1_dt;dT_dtheta2_dt;dT_dtheta3_dt;dV_dtheta1_dt;dV_dtheta2_dt;dV_dtheta3_dt];
 dXdt = [dTdt;dVdt;X11_dt;X21_dt;X12_dt;X22_dt;X13_dt;X23_dt;X14_dt;X24_dt];
+end
+function fsign_x = fsign(x,X)
+% % M should be row vector of size 1xk
+ column_count = size(X,2);
+ first_non_zero = 0; 
+ if sum(x) ~= 0
+  first_non_zero = sign(x); 
+ else    
+  for k=1:column_count
+       S = sum(X(:,k));
+       if S~=0
+          first_non_zero =  sign(X(:,k));
+          break
+       end
+  end
+ end
+ fsign_x = first_non_zero';
 end

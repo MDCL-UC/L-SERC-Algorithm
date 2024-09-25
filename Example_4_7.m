@@ -1,5 +1,5 @@
 clear all
-clc
+% clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Initialization %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Parameters
 np = 2; %number of parameters theta
@@ -106,15 +106,17 @@ if ne(check_empty,1)
     Param_sing = [Param+epsilon_sing_probing*V_sing(:,1)];
     D_sing = unique(D_sing.','rows').';
     Matrix_sing_probing_set = {[D_sing(:,1),eye(2)]}; %construct the singularity probing directions matrix from directions saved in the previous stages
-    for i=2:length(D_sing)
+    if size(D_sing,2)>1
+    for i=2:size(D_sing,2)
         Matrix_sing_probing_set{end+1} = [D_sing(:,i),eye(2)];
         Param_sing = [Param_sing Param+epsilon_sing_probing*V_sing(:,i) Param-epsilon_sing_probing*V_sing(:,i)];
+    end
     end
     Param_sing = unique(Param_sing.','rows').';
 
     T_f_sing=[];
     for k = 1:length(Matrix_sing_probing_set)
-       for i=1:length(Param_sing)
+       for i=1:size(Param_sing,2)
         P_Matrix_sing = cell2mat(Matrix_sing_probing_set(k));
         %start solving the forward sensitivity system for every direction in
         %the singularity probing directions matrix
@@ -157,51 +159,34 @@ if ne(check_empty,1)
     end
 end
 if (rank(S_L)==size(S_L,2)) || (rank(S_L_sing)==size(S_L_sing,2))
-    disp('Partially identifiable');
+    disp('L-SERC identifiable');
 else
-    disp('Non-identifiable');
+    disp('not L-SERC identifiable');
 end
 function dXdt = Example_4_7_ODE_solve(t,X,Param,P_Matrix)
-syms x p1 p2 P11 P12 P13 P21 P22 P23 Sx1 Sx2
-
-% ODE system1
-f = 0;
-g = 1-exp(-1*(x-p1));
-
-Jxf = jacobian(f,[p1,p2]);
-Jyf = jacobian(f,x);
-Jxg = jacobian(g,[p1,p2]);
-Jyg = jacobian(g,x);
-P = [P11 P12 P13;P21 P22 P23];
-
 % x value
 x = X(1);
 % Parameters values
 p1 = Param(1);
 p2 = Param(2);
 
-% Substitute x, p1 and p2 values into the functions
-f_val = subs(f);
-g_val = subs(g);
+f = 0;
+g = 1-exp(-1*(x-p1));
 
-dxdt = max(f_val,g_val);
-% Substitute x, p1 and p2 values into x_dot
-dxdt_val = double(subs(dxdt));
-% Substitute x, p1 and p2 values into the jacobians
-Jxf_val = subs(Jxf);
-Jyf_val = subs(Jyf);
-Jxg_val = subs(Jxg);
-Jyg_val = subs(Jyg);
+Jf_x = 0;
+Jf_p = [0 , 0];
+Jg_x = exp(p1 - x);
+Jg_p = [ -exp(p1 - x), 0 ];
+
+
+dxdt = max(f,g);
 
 X_1 = X(2);
 X_2 = X(3);
 X_3 = X(4);
 N = [X_1 X_2 X_3];
 
-Slmax_input_sym = [f_val Jxf_val*P_Matrix+Jyf_val*N;g_val Jxg_val*P_Matrix+Jyg_val*N];
-
-Slmax_input_val = subs(Slmax_input_sym);
-Slmax_input = double(Slmax_input_val);
+Slmax_input = [f Jf_p*P_Matrix+Jf_x*N;g Jg_p*P_Matrix+Jg_x*N];
 
 Slmax_output = SLmax(Slmax_input(1,:),Slmax_input(2,:));
 
@@ -211,5 +196,5 @@ dxpdt2 = Slmax_output(2);
 dxpdt3 = Slmax_output(3);
 
 dxpdt = [dxpdt1;dxpdt2;dxpdt3];
-dXdt = [dxdt_val;dxpdt];
+dXdt = [dxdt;dxpdt];
 end
