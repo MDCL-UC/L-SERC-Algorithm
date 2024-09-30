@@ -1,8 +1,15 @@
 clear
 clc
 close all
+format long
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 % Initialization section
+
+% Choose high_precision_computation == 'Y' to use HPF toolbox
+% (much slower code but allows for smaller ||alpha|| values)
+% or choose high_precision_computation == 'N' for standard Matlab precision
+% (minimum value allowed for accurate results is ||alpha|| = 1e-6
+high_precision_computation = 'N';
 % Number of parameters (theta) of the system
 ThetaCount = 3;
 % Values of reference parameters
@@ -95,8 +102,10 @@ V_Sol = X(:,2);
 Diff_Sol = abs(T_Sol - V_Sol);
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 % Smoothing results section
-total_samples_smooth = 200;
+total_samples_smooth = 20;
 alpha_vals = [1e0,1e-1,1e-2,1e-3,1e-4,1e-5,1e-6,1e-7,1e-8,1e-9,1e-10,0];
+choosen_alpha = 1e-1;
+% alpha_vals = [1e-9,1e-10];
 Rank_table = zeros(length(alpha_vals),total_samples_smooth);
 alpha_vec = zeros(2,length(alpha_vals));
 for ii=1:length(alpha_vals)
@@ -130,20 +139,25 @@ step_sample_smooth = 1;
 Time_subset_plot_smooth=[];
 
 %This loop to solve for y in each time step
-for ti=1:StepCount_smooth
+ for ti=1:StepCount_smooth
     T_min = 1.5;
     if alpha2 == 0
         h_case_smooth = max(X_smooth(ti,1),T_min);
         dh_case_smooth = SLmax([X_smooth(ti,1) X_smooth(ti,3) X_smooth(ti,5) X_smooth(ti,7) X_smooth(ti,9)],[T_min 0 0 0 0]);
-    else    
-%       max(a,b) = 1/2*(a + b + |a-b|); |a-b| \approx sqrt((a-b)^2+alpha^2)
+    elseif  (alpha_vec_norm(ii) == 1e-9 || alpha_vec_norm(ii) == 1e-10) && (high_precision_computation == 'Y')
+        h_case_smooth = hpf(1/2*(hpf(X_smooth(ti,1)+T_min+sqrt(hpf((X_smooth(ti,1)-T_min)^2)+hpf(alpha2^2)))));
+        dh_case_smooth = [hpf(1/2*X_smooth(ti,3)*(1/(2*(X_smooth(ti,1)-T_min)))+0+1/2*1/sqrt(hpf((X_smooth(ti,1)-T_min)^2)+hpf(alpha2^2)))*(2*(X_smooth(ti,1)-T_min))...
+                   1/2*X_smooth(ti,5)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt(hpf((X_smooth(ti,1)-T_min)^2)+hpf(alpha2^2)))*(2*(X_smooth(ti,1)-T_min))...
+                   1/2*X_smooth(ti,7)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt(hpf((X_smooth(ti,1)-T_min)^2)+hpf(alpha2^2)))*(2*(X_smooth(ti,1)-T_min))...
+                   1/2*X_smooth(ti,9)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt(hpf((X_smooth(ti,1)-T_min)^2)+hpf(alpha2^2)))*(2*(X_smooth(ti,1)-T_min))];
+    else
         h_case_smooth = 1/2*(X_smooth(ti,1)+T_min+sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2));
-        dh_case_smooth = [1/2*X_smooth(ti,3)*(1+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))...
-                   1/2*X_smooth(ti,5)*(1+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))...
-                   1/2*X_smooth(ti,7)*(1+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))...
-                   1/2*X_smooth(ti,9)*(1+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))];
-    end   
+        dh_case_smooth = [1/2*X_smooth(ti,3)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))...
+                   1/2*X_smooth(ti,5)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))...
+                   1/2*X_smooth(ti,7)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))...
+                   1/2*X_smooth(ti,9)*(1/(2*(X_smooth(ti,1)-T_min))+0+1/2*1/sqrt((X_smooth(ti,1)-T_min)^2+alpha2^2))*(2*(X_smooth(ti,1)-T_min))];
 
+    end   
     y_output_case2(step_smooth:step_smooth+m-1) = h_case_smooth;
     Y_theta_case_smooth(step_smooth:step_smooth+m-1,1:end) = dh_case_smooth;
 
@@ -157,13 +171,14 @@ end
 
 
 %Get SY and SVD case2
-[U_LD_smooth,S_LD_smooth,V_LD_smooth] = svd(Y_theta_samples_case_smooth);
+[U_LD_smooth,S_LD_smooth,V_LD_smooth] = svd(double(Y_theta_samples_case_smooth));
 Sy_smooth = Y_theta_case_smooth*[0 0 0;eye(3)];
 Sy1_smooth_all(:,ii) =  Sy_smooth(:,1);
-Sy_samples_smooth = Y_theta_samples_case_smooth*[0 0 0;eye(3)];
+Sy_samples_smooth = double(Y_theta_samples_case_smooth)*[0 0 0;eye(3)];
 [U_L_smooth,S_L_smooth,V_L_smooth] = svd(Sy_samples_smooth);
 Rank_table(ii,jj)=rank(S_L_smooth,1e-20000);
-if alpha_vec_norm(ii)== 1e-6
+
+if alpha_vec_norm(ii)== choosen_alpha
     Sy_smooth_sens_plot = Sy_smooth;
     alpha_vec_norm_plot = alpha_vec_norm(ii);
 end
@@ -199,6 +214,7 @@ xline(0.4,'k-.','LineWidth',2,'HandleVisibility','off');
 
 %2- Plot S^L_y
 sensitivity_subplot=subplot(2,2,3,'Parent',figure_combined);
+subplot_title = append('$||\alpha|| = $ ',num2str(choosen_alpha));
 plot2=plot(Time,Sy_case_id(1:m:end,1),'b',Time,Sy_case_id(1:m:end,2),'k',Time,Sy_case_id(1:m:end,3),'r' ...
     ,Time_smooth,Sy_smooth_sens_plot(:,1),'b:',Time_smooth,Sy_smooth_sens_plot(:,2),'k:',Time_smooth,Sy_smooth_sens_plot(:,3),'r:'...
     ,Time_subset_plot,Sy_samples_case_id(1:m:end,1),'b*',Time_subset_plot,Sy_samples_case_id(1:m:end,2),'k*',Time_subset_plot,Sy_samples_case_id(1:m:end,3),'r*'...
@@ -213,6 +229,7 @@ ylim([-0.5 1]);
 xline(0.75,'k-.','LineWidth',2,'HandleVisibility','off');
 xline(0.4,'k-.','LineWidth',2,'HandleVisibility','off');
 xticks(0:0.2:1)
+title(subplot_title,'Interpreter','latex') 
 % 3- Heatmap
 heatmap_subplot=subplot(2,2,4,'Parent',figure_combined);
 h = heatmap(Rank_table_logical);
@@ -289,7 +306,7 @@ X21_dt = df2(1) - theta3*X21 - abs(T-V)*X21 - V*fsign_u*(X11-X21);
 X22_dt = df2(2) - theta3*X22 - abs(T-V)*X22 - V*fsign_u*(X12-X22);
 X23_dt = df2(3) - theta3*X23 - abs(T-V)*X23 - V*fsign_u*(X13-X23);
 X24_dt = df2(4) - theta3*X24 - abs(T-V)*X24 - V*fsign_u*(X14-X24);
-% dXdt = [dTdt;dVdt;dT_dtheta1_dt;dT_dtheta2_dt;dT_dtheta3_dt;dV_dtheta1_dt;dV_dtheta2_dt;dV_dtheta3_dt];
+
 dXdt = [dTdt;dVdt;X11_dt;X21_dt;X12_dt;X22_dt;X13_dt;X23_dt;X14_dt;X24_dt];
 end
 function dXdt = Stommel_Box_model_ODE_smoothing(t,X,Param,M_Matrix,alpha)
@@ -343,7 +360,7 @@ X21_dt = df2(1) - theta3*X21 - smooth_abs*X21 - V*grad_smooth_abs*(X11-X21);
 X22_dt = df2(2) - theta3*X22 - smooth_abs*X22 - V*grad_smooth_abs*(X12-X22);
 X23_dt = df2(3) - theta3*X23 - smooth_abs*X23 - V*grad_smooth_abs*(X13-X23);
 X24_dt = df2(4) - theta3*X24 - smooth_abs*X24 - V*grad_smooth_abs*(X14-X24);
-% dXdt = [dTdt;dVdt;dT_dtheta1_dt;dT_dtheta2_dt;dT_dtheta3_dt;dV_dtheta1_dt;dV_dtheta2_dt;dV_dtheta3_dt];
+
 dXdt = [dTdt;dVdt;X11_dt;X21_dt;X12_dt;X22_dt;X13_dt;X23_dt;X14_dt;X24_dt];
 end
 function fsign_x = fsign(x,X)
