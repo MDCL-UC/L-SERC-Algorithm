@@ -8,7 +8,7 @@ close all
 % (much slower code but allows for smaller ||alpha|| values)
 % or choose high_precision_computation == 'N' for standard Matlab precision
 % (minimum value allowed for accurate results is ||alpha|| = 1e-6
-high_precision_computation = 'N';
+high_precision_computation = 'Y';
 % Number of parameters (theta) of the system
 ThetaCount = 3;
 % Values of reference parameters
@@ -173,6 +173,8 @@ end
 [U_LD_smooth,S_LD_smooth,V_LD_smooth] = svd(double(Y_theta_samples_case_smooth));
 Sy_smooth = Y_theta_case_smooth*[0 0 0;eye(3)];
 Sy1_smooth_all(:,ii) =  Sy_smooth(:,1);
+Sy2_smooth_all(:,ii) =  Sy_smooth(:,2);
+Sy3_smooth_all(:,ii) =  Sy_smooth(:,3);
 Sy_samples_smooth = double(Y_theta_samples_case_smooth)*[0 0 0;eye(3)];
 [U_L_smooth,S_L_smooth,V_L_smooth] = svd(Sy_samples_smooth);
 Rank_table(ii,jj)=rank(S_L_smooth,1e-20000);
@@ -215,10 +217,24 @@ xline(0.4,'k-.','LineWidth',2,'HandleVisibility','off');
 %2- Plot S^L_y
 sensitivity_subplot=subplot(2,2,3,'Parent',figure_combined);
 subplot_title = append('$||\alpha|| = $ ',num2str(choosen_alpha));
-plot2=plot(Time,Sy_case_id(1:m:end,1),'b',Time,Sy_case_id(1:m:end,2),'k',Time,Sy_case_id(1:m:end,3),'r' ...
-    ,Time_smooth,Sy_smooth_sens_plot(:,1),'b:',Time_smooth,Sy_smooth_sens_plot(:,2),'k:',Time_smooth,Sy_smooth_sens_plot(:,3),'r:'...
-    ,Time_subset_plot,Sy_samples_case_id(1:m:end,1),'b*',Time_subset_plot,Sy_samples_case_id(1:m:end,2),'k*',Time_subset_plot,Sy_samples_case_id(1:m:end,3),'r*'...
-    ,'Parent',sensitivity_subplot,'MarkerSize',20);
+plot2=plot(Time,Sy_case_id(1:m:end,1),'Color','b','Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time,Sy_case_id(1:m:end,2),'Color','k','Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time,Sy_case_id(1:m:end,3),'Color','r','Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time_smooth,Sy_smooth_sens_plot(:,1),':','Color',[0.9290 0.6940 0.1250],'Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time_smooth,Sy_smooth_sens_plot(:,2),':','Color',[0.3010 0.7450 0.9330],'Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time_smooth,Sy_smooth_sens_plot(:,3),':','Color','g','Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time_subset_plot,Sy_samples_case_id(1:m:end,1),'*','Color','b','Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time_subset_plot,Sy_samples_case_id(1:m:end,2),'*','Color','k','Parent',sensitivity_subplot,'MarkerSize',20);
+hold on
+plot(Time_subset_plot,Sy_samples_case_id(1:m:end,3),'*','Color','r','Parent',sensitivity_subplot,'MarkerSize',20);
+
 xlabel('Time');
 formatSpec = '%s';
 % txt1 = '${\mathrm{col}}_1(S_y)$ ' + num2str(alpha_vec_norm_plot,formatSpec);
