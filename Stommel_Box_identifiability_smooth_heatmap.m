@@ -1,7 +1,6 @@
 clear
 clc
 close all
-format long
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 % Initialization section
 
@@ -104,7 +103,7 @@ Diff_Sol = abs(T_Sol - V_Sol);
 % Smoothing results section
 total_samples_smooth = 20;
 alpha_vals = [1e0,1e-1,1e-2,1e-3,1e-4,1e-5,1e-6,1e-7,1e-8,1e-9,1e-10,0];
-choosen_alpha = 1e-1;
+choosen_alpha = 1e-6;
 % alpha_vals = [1e-9,1e-10];
 Rank_table = zeros(length(alpha_vals),total_samples_smooth);
 alpha_vec = zeros(2,length(alpha_vals));
@@ -115,7 +114,7 @@ alpha2 = alpha_vals(ii)/sqrt(2);
 alpha_vec(:,ii) = [alpha1;alpha2];
 alpha_vec_norm(ii) = vecnorm(alpha_vec(:,ii));
 %Solving LD-sensistivity matrix
-[Time_smooth,X_smooth] = ode45(@(t,X) Stommel_Box_model_ODE_smoothing(t,X,Param,M_Matrix,alpha1),tspan,X0_All(:));
+[Time_smooth,X_smooth] = ode23s(@(t,X) Stommel_Box_model_ODE_smoothing(t,X,Param,M_Matrix,alpha1),tspan,X0_All(:));
 
 % Ytheta identifiability check matrix
 %h=max
@@ -195,6 +194,7 @@ Rank_table_logical(1:rows-1,cols)=1;
 % Plotting section
 close all
 set(0,'DefaultFigureWindowStyle','docked')
+set(gcf,'renderer','Painters')
 % %1- Plot solution vs output
 % %a)solution
 figure_combined = figure('Name','Solution vs Output','DefaultAxesFontSize',24,'defaultLineLineWidth',4);
